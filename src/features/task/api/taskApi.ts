@@ -1,5 +1,5 @@
 import apiClient from '@/services/apiClient';
-import { Task, TaskComment, TaskAttachment, CreateTaskData } from '../types';
+import { Task, TaskComment, TaskAttachment, CreateTaskData, UpdateTaskData } from '../types';
 
 export const taskApi = {
   getTasks: async (projectId: string): Promise<Task[]> => {
@@ -14,6 +14,15 @@ export const taskApi = {
   
   updateStatus: async (taskId: string, status: string): Promise<void> => {
     await apiClient.put(`/tasks/${taskId}/status`, { status });
+  },
+
+  updateTask: async (taskId: string, data: UpdateTaskData): Promise<Task> => {
+    const response = await apiClient.put(`/tasks/${taskId}`, data);
+    return response.data;
+  },
+
+  deleteTask: async (taskId: string): Promise<void> => {
+    await apiClient.delete(`/tasks/${taskId}`);
   },
 
   getComments: async (taskId: string): Promise<TaskComment[]> => {

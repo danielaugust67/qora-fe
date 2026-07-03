@@ -36,3 +36,5 @@ export interface CreateTaskData {
   type?: string;
   priority?: string;
 }
+
+export type UpdateTaskData = CreateTaskData;
