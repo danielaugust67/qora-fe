@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskApi } from '@/features/task/api/taskApi';
 import { Task } from '@/features/task/types';
@@ -114,6 +114,9 @@ export const KanbanBoard = () => {
           <h2 className="text-2xl font-bold">Kanban Board {activeSprint && `- ${activeSprint.name}`}</h2>
         </div>
         <div className="flex gap-4">
+          <Link to={`/projects/${projectId}/qa`} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md text-sm font-medium border hover:bg-secondary/80">
+            QA Dashboard
+          </Link>
           <Link to={`/projects/${projectId}/backlog`} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md text-sm font-medium border hover:bg-secondary/80">
             Sprint Planning (Backlog)
           </Link>

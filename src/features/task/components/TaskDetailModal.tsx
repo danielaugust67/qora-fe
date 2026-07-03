@@ -3,8 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskApi } from '@/features/task/api/taskApi';
 import { Task } from '@/features/task/types';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { format } from 'date-fns'; // We need date-fns, but for now I'll just use native to avoid adding deps, wait I'll just use native Date.
-
+import { qaApi } from '@/features/qa/api/qaApi';
+import { CreateTestCaseForm } from '@/features/qa/components/CreateTestCaseForm';
+import { TestRunnerModal } from '@/features/qa/components/TestRunnerModal';
+import { TestCase } from '@/features/qa/types';
+import { bugApi } from '@/features/bug/api/bugApi';
+import { CreateBugForm } from '@/features/bug/components/CreateBugForm';
+import { Bug } from '@/features/bug/types';
 interface TaskDetailModalProps {
   task: Task;
   projectId: string;
@@ -16,6 +21,10 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectI
   const user = useAuthStore((state) => state.user);
   const [commentText, setCommentText] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isCreatingTestCase, setIsCreatingTestCase] = useState(false);
+  const [runningTest, setRunningTest] = useState<TestCase | null>(null);
+  const [isCreatingBug, setIsCreatingBug] = useState(false);
+  const [bugTestCaseId, setBugTestCaseId] = useState<string | undefined>();
 
   const { data: comments = [] } = useQuery({
     queryKey: ['task', task.id, 'comments'],
@@ -25,6 +34,18 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectI
   const { data: attachments = [] } = useQuery({
     queryKey: ['task', task.id, 'attachments'],
     queryFn: () => taskApi.getAttachments(task.id),
+  });
+
+  const { data: testCases = [], isLoading: testCasesLoading } = useQuery({
+    queryKey: ['task', task.id, 'test-cases'],
+    queryFn: () => qaApi.getTaskTestCases(task.id),
+    enabled: !!task.id,
+  });
+
+  const { data: bugs = [], isLoading: bugsLoading } = useQuery({
+    queryKey: ['task', task.id, 'bugs'],
+    queryFn: () => bugApi.getTaskBugs(task.id),
+    enabled: !!task.id,
   });
 
   const addCommentMutation = useMutation({
@@ -44,11 +65,23 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectI
     onError: () => setIsUploading(false),
   });
 
+  const updateBugStatusMutation = useMutation({
+    mutationFn: ({ bugId, status }: { bugId: string; status: string }) => bugApi.updateStatus(bugId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task', task.id, 'bugs'] });
+    },
+  });
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setIsUploading(true);
       uploadAttachmentMutation.mutate(e.target.files[0]);
     }
+  };
+
+  const openBugForm = (testCaseId?: string) => {
+    setBugTestCaseId(testCaseId);
+    setIsCreatingBug(true);
   };
 
   return (
@@ -86,6 +119,137 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectI
             <div className="prose prose-sm dark:prose-invert">
               <p>{task.description || 'No description provided.'}</p>
             </div>
+          </div>
+
+          {/* Test Cases */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Test Cases</h3>
+              <button
+                onClick={() => setIsCreatingTestCase((value) => !value)}
+                className="rounded-md bg-secondary px-3 py-1.5 text-sm text-secondary-foreground transition-colors hover:bg-secondary/80"
+              >
+                {isCreatingTestCase ? 'Close Form' : 'Create Test Case'}
+              </button>
+            </div>
+
+            {isCreatingTestCase && (
+              <CreateTestCaseForm taskId={task.id} onCancel={() => setIsCreatingTestCase(false)} />
+            )}
+
+            {testCasesLoading ? (
+              <p className="text-sm text-muted-foreground">Loading test cases...</p>
+            ) : testCases.length > 0 ? (
+              <div className="space-y-3">
+                {testCases.map((testCase) => (
+                  <div
+                    key={testCase.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/10 p-3"
+                  >
+                    <div>
+                      <div className="font-medium">{testCase.title}</div>
+                      <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span>Status: {testCase.status}</span>
+                        <span>Priority: {testCase.priority}</span>
+                        <span>{testCase.steps?.length ?? 0} steps</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {testCase.status === 'FAILED' && (
+                        <button
+                          onClick={() => openBugForm(testCase.id)}
+                          className="rounded-md bg-destructive/10 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          Report Bug
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setRunningTest(testCase)}
+                        className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
+                      >
+                        Run Test
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No test cases yet.</p>
+            )}
+          </div>
+
+          {/* Bug Reports */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Bug Reports</h3>
+              <button
+                onClick={() => openBugForm()}
+                className="rounded-md bg-secondary px-3 py-1.5 text-sm text-secondary-foreground transition-colors hover:bg-secondary/80"
+              >
+                Report Bug
+              </button>
+            </div>
+
+            {isCreatingBug && (
+              <CreateBugForm
+                taskId={task.id}
+                projectId={projectId}
+                testCases={testCases}
+                initialTestCaseId={bugTestCaseId}
+                onCancel={() => {
+                  setIsCreatingBug(false);
+                  setBugTestCaseId(undefined);
+                }}
+              />
+            )}
+
+            {bugsLoading ? (
+              <p className="text-sm text-muted-foreground">Loading bug reports...</p>
+            ) : bugs.length > 0 ? (
+              <div className="space-y-3">
+                {bugs.map((bug: Bug) => (
+                  <div key={bug.id} className="rounded-lg border bg-muted/10 p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="font-medium">{bug.title}</div>
+                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          <span>Status: {bug.status}</span>
+                          <span>Severity: {bug.severity}</span>
+                          <span>Priority: {bug.priority}</span>
+                        </div>
+                      </div>
+                      <select
+                        value={bug.status}
+                        onChange={(event) =>
+                          updateBugStatusMutation.mutate({ bugId: bug.id, status: event.target.value })
+                        }
+                        className="h-9 rounded-md border bg-background px-2 text-sm"
+                      >
+                        <option value="OPEN">Open</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="FIXED">Fixed</option>
+                        <option value="RETEST">Retest</option>
+                        <option value="CLOSED">Closed</option>
+                        <option value="REJECTED">Rejected</option>
+                      </select>
+                    </div>
+                    {bug.description && <p className="mt-3 text-sm text-muted-foreground">{bug.description}</p>}
+                    {bug.screenshot_url && (
+                      <a
+                        href={bug.screenshot_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+                      >
+                        View screenshot
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No bug reports yet.</p>
+            )}
           </div>
 
           {/* Attachments */}
@@ -181,6 +345,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectI
           </div>
         </div>
       </div>
+      {runningTest && (
+        <TestRunnerModal
+          testCase={runningTest}
+          onClose={() => setRunningTest(null)}
+        />
+      )}
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { useAuthStore } from './features/auth/store/authStore'
 import { WorkspaceDashboard } from './features/workspace/components/WorkspaceDashboard'
 import { KanbanBoard } from './features/board/components/KanbanBoard'
 import { SprintBacklog } from './features/sprint/components/SprintBacklog'
+import { QADashboard } from './features/qa/components/QADashboard'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = useAuthStore((state) => state.token)
@@ -55,6 +56,7 @@ function App() {
                       <Route path="/" element={<WorkspaceDashboard />} />
                       <Route path="/projects/:projectId/board" element={<KanbanBoard />} />
                       <Route path="/projects/:projectId/backlog" element={<SprintBacklog />} />
+                      <Route path="/projects/:projectId/qa" element={<QADashboard />} />
                     </Routes>
                   </main>
                 </div>
