@@ -1,0 +1,186 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { taskApi } from '@/features/task/api/taskApi';
+import { Task } from '@/features/task/types';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { format } from 'date-fns'; // We need date-fns, but for now I'll just use native to avoid adding deps, wait I'll just use native Date.
+
+interface TaskDetailModalProps {
+  task: Task;
+  projectId: string;
+  onClose: () => void;
+}
+
+export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectId, onClose }) => {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const [commentText, setCommentText] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+
+  const { data: comments = [] } = useQuery({
+    queryKey: ['task', task.id, 'comments'],
+    queryFn: () => taskApi.getComments(task.id),
+  });
+
+  const { data: attachments = [] } = useQuery({
+    queryKey: ['task', task.id, 'attachments'],
+    queryFn: () => taskApi.getAttachments(task.id),
+  });
+
+  const addCommentMutation = useMutation({
+    mutationFn: (content: string) => taskApi.addComment(task.id, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task', task.id, 'comments'] });
+      setCommentText('');
+    },
+  });
+
+  const uploadAttachmentMutation = useMutation({
+    mutationFn: (file: File) => taskApi.uploadAttachment(task.id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task', task.id, 'attachments'] });
+      setIsUploading(false);
+    },
+    onError: () => setIsUploading(false),
+  });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setIsUploading(true);
+      uploadAttachmentMutation.mutate(e.target.files[0]);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-card w-full max-w-2xl max-h-[90vh] rounded-xl border shadow-lg flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* Header */}
+        <div className="px-6 py-4 border-b flex items-center justify-between bg-muted/20">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold px-2 py-1 bg-secondary text-secondary-foreground rounded uppercase tracking-wider">
+              {task.type}
+            </span>
+            <span className="text-sm font-medium text-muted-foreground">
+              {task.id.split('-')[0]} {/* Short ID */}
+            </span>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-muted rounded-full transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          
+          {/* Title & Desc */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold">{task.title}</h2>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="px-2 py-1 bg-muted rounded-md font-medium">Status: {task.status}</span>
+              <span className="px-2 py-1 bg-muted rounded-md font-medium">Priority: {task.priority}</span>
+            </div>
+            <div className="prose prose-sm dark:prose-invert">
+              <p>{task.description || 'No description provided.'}</p>
+            </div>
+          </div>
+
+          {/* Attachments */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Attachments</h3>
+              <div>
+                <input 
+                  type="file" 
+                  id="file-upload" 
+                  className="hidden" 
+                  onChange={handleFileUpload} 
+                  disabled={isUploading}
+                />
+                <label 
+                  htmlFor="file-upload" 
+                  className="cursor-pointer text-sm bg-secondary text-secondary-foreground px-3 py-1.5 rounded-md hover:bg-secondary/80 transition-colors"
+                >
+                  {isUploading ? 'Uploading...' : 'Upload File'}
+                </label>
+              </div>
+            </div>
+            
+            {attachments.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {attachments.map(att => (
+                  <a 
+                    key={att.id} 
+                    href={att.file_url} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="block p-3 border rounded-lg hover:border-primary/50 transition-colors bg-muted/10 group"
+                  >
+                    <div className="truncate text-sm font-medium group-hover:text-primary transition-colors">
+                      {att.file_name}
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No attachments yet.</p>
+            )}
+          </div>
+
+          {/* Comments */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Comments</h3>
+            
+            <div className="space-y-4">
+              {comments.map(comment => (
+                <div key={comment.id} className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                    {/* Placeholder for user avatar initals */}
+                    U
+                  </div>
+                  <div className="flex-1 bg-muted/30 p-3 rounded-lg rounded-tl-none border">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-medium text-sm">User</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(comment.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm">{comment.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Comment Input */}
+            <div className="flex gap-4 pt-4 border-t">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                {user?.name?.[0]?.toUpperCase()}
+              </div>
+              <div className="flex-1 flex flex-col gap-2">
+                <textarea 
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Add a comment..."
+                  className="w-full text-sm p-3 rounded-md border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[80px]"
+                />
+                <div className="flex justify-end">
+                  <button 
+                    disabled={!commentText.trim() || addCommentMutation.isPending}
+                    onClick={() => addCommentMutation.mutate(commentText)}
+                    className="bg-primary text-primary-foreground text-sm px-4 py-1.5 rounded-md font-medium disabled:opacity-50"
+                  >
+                    {addCommentMutation.isPending ? 'Saving...' : 'Comment'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
