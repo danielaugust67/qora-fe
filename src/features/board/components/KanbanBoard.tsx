@@ -17,13 +17,15 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { KanbanCard } from './KanbanCard';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { sprintApi } from '@/features/sprint/api/sprintApi';
+import { ProjectChrome } from '@/features/project/components/ProjectChrome';
+import { Filter, Group, MoreHorizontal, Search, SlidersHorizontal } from 'lucide-react';
 
 const COLUMNS = [
-  { id: 'TODO', title: 'To Do' },
+  { id: 'TODO', title: 'Idea' },
   { id: 'IN_PROGRESS', title: 'In Progress' },
-  { id: 'REVIEW', title: 'Review' },
+  { id: 'REVIEW', title: 'In Review' },
   { id: 'TESTING', title: 'Testing' },
   { id: 'DONE', title: 'Done' },
 ];
@@ -102,42 +104,60 @@ export const KanbanBoard = () => {
     }
   };
 
-  if (tasksLoading || sprintsLoading) return <div className="p-8 text-muted-foreground">Loading board...</div>;
+  if (tasksLoading || sprintsLoading) {
+    return (
+      <ProjectChrome projectId={projectId!}>
+        <div className="p-8 text-sm text-[#626f86]">Loading board...</div>
+      </ProjectChrome>
+    );
+  }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="text-sm font-medium hover:underline text-muted-foreground">
-            &larr; Back to Dashboard
-          </Link>
-          <h2 className="text-2xl font-bold">Kanban Board {activeSprint && `- ${activeSprint.name}`}</h2>
-        </div>
-        <div className="flex gap-4">
-          <Link to={`/projects/${projectId}/qa`} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md text-sm font-medium border hover:bg-secondary/80">
-            QA Dashboard
-          </Link>
-          <Link to={`/projects/${projectId}/backlog`} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md text-sm font-medium border hover:bg-secondary/80">
-            Sprint Planning (Backlog)
-          </Link>
+    <ProjectChrome projectId={projectId!}>
+      <div className="flex h-[calc(100vh-10rem)] flex-col bg-white px-8 py-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#626f86]" />
+              <input
+                className="h-9 w-48 rounded border border-[#dfe1e6] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#0c66e4] focus:ring-1 focus:ring-[#0c66e4]"
+                placeholder="Search board"
+              />
+            </div>
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-[#00875a] text-xs font-bold text-white">D</div>
+            <button className="inline-flex h-9 items-center gap-2 rounded border border-[#dfe1e6] bg-white px-3 text-sm text-[#172b4d] hover:bg-[#f1f2f4]">
+              <Filter className="h-4 w-4" />
+              Filter
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
           {activeSprint && (
             <button
-              onClick={() => setSelectedTask({ sprint_id: activeSprint.id } as Task)} // signify creation
-              className="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium"
+              className="h-9 rounded bg-[#0c66e4] px-4 text-sm font-semibold text-white hover:bg-[#0055cc]"
             >
-              Add Task
+              Complete sprint
             </button>
           )}
+            <button className="grid h-9 w-9 place-items-center rounded border border-[#dfe1e6] bg-white hover:bg-[#f1f2f4]" aria-label="Group">
+              <Group className="h-4 w-4" />
+            </button>
+            <button className="inline-flex h-9 items-center gap-2 rounded border border-[#dfe1e6] bg-white px-3 text-sm hover:bg-[#f1f2f4]">
+              Group
+            </button>
+            <button className="grid h-9 w-9 place-items-center rounded border border-[#dfe1e6] bg-white hover:bg-[#f1f2f4]" aria-label="View settings">
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+            <button className="grid h-9 w-9 place-items-center rounded border border-[#dfe1e6] bg-white hover:bg-[#f1f2f4]" aria-label="More">
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      </div>
 
       {!activeSprint ? (
-        <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl">
-          <h3 className="text-xl font-bold mb-2">No Active Sprint</h3>
-          <p className="text-muted-foreground mb-6">Start a sprint from the backlog to see tasks on the board.</p>
-          <Link to={`/projects/${projectId}/backlog`} className="bg-primary text-primary-foreground px-6 py-2 rounded-md font-medium text-sm">
-            Go to Backlog
-          </Link>
+        <div className="flex flex-1 flex-col items-center justify-center rounded bg-[#f7f8f9] text-center">
+          <h3 className="mb-2 text-lg font-semibold">No active sprint</h3>
+          <p className="text-sm text-[#626f86]">Start a sprint from the backlog to see tasks on the board.</p>
         </div>
       ) : (
         <DndContext
@@ -146,7 +166,7 @@ export const KanbanBoard = () => {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-6 overflow-x-auto pb-4 h-full">
+          <div className="flex h-full gap-3 overflow-x-auto pb-3">
             {COLUMNS.map((col) => (
             <KanbanColumn 
               key={col.id} 
@@ -170,6 +190,7 @@ export const KanbanBoard = () => {
           onClose={() => setSelectedTask(null)} 
         />
       )}
-    </div>
+      </div>
+    </ProjectChrome>
   );
 };

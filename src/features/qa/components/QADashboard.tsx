@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { qaApi } from '../api/qaApi';
 import { TestCase } from '../types';
 import { TestRunnerModal } from './TestRunnerModal';
+import { ProjectChrome } from '@/features/project/components/ProjectChrome';
 
 export const QADashboard = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -16,24 +17,19 @@ export const QADashboard = () => {
   });
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <ProjectChrome projectId={projectId!}>
+    <div className="space-y-6 bg-white px-8 py-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">QA Dashboard</h2>
-          <p className="mt-2 text-muted-foreground">Review and execute task-linked test cases.</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-[#172b4d]">QA Dashboard</h2>
+          <p className="mt-1 text-sm text-[#626f86]">Review and execute task-linked test cases.</p>
         </div>
-        <Link
-          to={`/projects/${projectId}/board`}
-          className="rounded-md border bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-        >
-          Back to Board
-        </Link>
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="overflow-hidden rounded border border-[#dfe1e6] bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-muted/50 text-muted-foreground">
+            <thead className="bg-[#f7f8f9] text-[#44546f]">
               <tr>
                 <th className="px-6 py-4 font-semibold">Test Case</th>
                 <th className="px-6 py-4 font-semibold">Task</th>
@@ -58,7 +54,7 @@ export const QADashboard = () => {
                 </tr>
               ) : (
                 testCases.map((tc) => (
-                  <tr key={tc.id} className="transition-colors hover:bg-muted/30">
+                  <tr key={tc.id} className="transition-colors hover:bg-[#f7f8f9]">
                     <td className="px-6 py-4">
                       <div className="font-medium text-foreground">{tc.title}</div>
                       <div className="mt-1 line-clamp-1 text-xs text-muted-foreground">
@@ -93,5 +89,6 @@ export const QADashboard = () => {
 
       {runningTest && <TestRunnerModal testCase={runningTest} onClose={() => setRunningTest(null)} />}
     </div>
+    </ProjectChrome>
   );
 };

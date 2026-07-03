@@ -5,6 +5,8 @@ import { taskApi } from '@/features/task/api/taskApi';
 import { sprintApi } from '@/features/sprint/api/sprintApi';
 import { Task } from '@/features/task/types';
 import { DndContext, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
+import { ProjectChrome } from '@/features/project/components/ProjectChrome';
+import { Filter, MoreHorizontal, Search, SlidersHorizontal } from 'lucide-react';
 
 // Draggable Task Item
 const DraggableTask = ({ task }: { task: Task }) => {
@@ -23,37 +25,54 @@ const DraggableTask = ({ task }: { task: Task }) => {
       style={style}
       {...listeners}
       {...attributes}
-      className={`p-3 bg-card border rounded-md shadow-sm flex justify-between items-center cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors ${isDragging ? 'opacity-50 z-50 relative' : ''}`}
+      className={`grid cursor-grab grid-cols-[92px_1fr_180px_92px_56px_32px] items-center border-b border-[#dfe1e6] bg-white px-3 py-2 text-sm active:cursor-grabbing ${isDragging ? 'relative z-50 opacity-50' : ''}`}
     >
-      <div className="font-medium text-sm">{task.title}</div>
-      <span className="text-xs bg-muted px-2 py-1 rounded">{task.type}</span>
+      <div className="text-[#44546f] line-through decoration-[#44546f]">{task.id.split('-')[0].toUpperCase()}</div>
+      <div className="font-medium text-[#172b4d]">{task.title}</div>
+      <span className="w-fit rounded bg-[#dfd8fd] px-1.5 py-0.5 text-[11px] font-bold uppercase text-[#5e4db2]">
+        {task.type}
+      </span>
+      <span className="w-fit rounded bg-[#dfe1e6] px-1.5 py-0.5 text-[11px] font-bold uppercase text-[#44546f]">
+        {task.status.replace('_', ' ')}
+      </span>
+      <span className="w-fit rounded bg-[#dfe1e6] px-2 py-0.5 text-xs font-semibold text-[#44546f]">{task.priority}</span>
+      <span className="grid h-6 w-6 place-items-center rounded-full bg-[#00875a] text-xs font-bold text-white">D</span>
     </div>
   );
 };
 
 // Droppable Sprint Container
-const DroppableSprint = ({ sprintId, title, isActive, onStart, onComplete, children }: any) => {
+const DroppableSprint = ({ sprintId, title, count, isActive, onStart, onComplete, children }: any) => {
   const { isOver, setNodeRef } = useDroppable({ id: sprintId });
 
   return (
     <div 
       ref={setNodeRef}
-      className={`border-2 rounded-xl p-4 bg-muted/20 transition-colors ${isOver ? 'border-primary/50 bg-primary/5' : 'border-dashed'}`}
+      className={`rounded bg-[#f7f8f9] transition-colors ${isOver ? 'ring-2 ring-[#0c66e4]' : ''}`}
     >
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="font-bold text-lg">{title}</h3>
+      <div className="flex h-12 items-center justify-between px-4">
+        <div className="flex items-center gap-3">
+          <input type="checkbox" className="h-4 w-4 rounded border-[#8590a2]" />
+          <h3 className="text-sm font-semibold text-[#172b4d]">{title}</h3>
+          <span className="text-sm text-[#626f86]">({count} work items)</span>
+        </div>
+        <div className="flex items-center gap-2">
         {isActive === false && onStart && (
-          <button onClick={onStart} className="text-xs font-semibold bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90">
+          <button onClick={onStart} className="h-8 rounded border border-[#dfe1e6] bg-white px-3 text-sm font-medium hover:bg-[#f1f2f4]">
             Start Sprint
           </button>
         )}
         {isActive === true && onComplete && (
-          <button onClick={onComplete} className="text-xs font-semibold bg-emerald-600 text-white px-3 py-1.5 rounded-md hover:bg-emerald-700">
+          <button onClick={onComplete} className="h-8 rounded border border-[#dfe1e6] bg-white px-3 text-sm font-medium hover:bg-[#f1f2f4]">
             Complete Sprint
           </button>
         )}
+          <button className="grid h-8 w-8 place-items-center rounded hover:bg-[#ebecf0]" aria-label="More">
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </div>
       </div>
-      <div className="space-y-2 min-h-[100px]">
+      <div className="min-h-[46px] border border-[#dfe1e6] bg-white">
         {children}
       </div>
     </div>
@@ -125,55 +144,73 @@ export const SprintBacklog = () => {
   const plannedSprints = sprints.filter(s => s.status === 'PLANNED' || s.status === 'ACTIVE');
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Backlog</h2>
-        <div className="flex gap-4">
-          <Link to={`/projects/${projectId}/board`} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md font-medium text-sm border hover:bg-secondary/80">
-            Go to Active Board
-          </Link>
-          <button 
-            onClick={() => setIsCreatingSprint(true)}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm"
-          >
-            Create Sprint
-          </button>
+    <ProjectChrome projectId={projectId!}>
+      <div className="bg-white px-8 py-5">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#626f86]" />
+              <input
+                className="h-9 w-48 rounded border border-[#dfe1e6] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#0c66e4] focus:ring-1 focus:ring-[#0c66e4]"
+                placeholder="Search backlog"
+              />
+            </div>
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-[#00875a] text-xs font-bold text-white">D</div>
+            <button className="inline-flex h-9 items-center gap-2 rounded border border-[#dfe1e6] bg-white px-3 text-sm hover:bg-[#f1f2f4]">
+              <Filter className="h-4 w-4" />
+              Filter
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsCreatingSprint(true)}
+              className="h-9 rounded bg-[#0c66e4] px-4 text-sm font-semibold text-white hover:bg-[#0055cc]"
+            >
+              Create sprint
+            </button>
+            <button className="grid h-9 w-9 place-items-center rounded border border-[#dfe1e6] bg-white hover:bg-[#f1f2f4]" aria-label="View">
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+            <button className="grid h-9 w-9 place-items-center rounded border border-[#dfe1e6] bg-white hover:bg-[#f1f2f4]" aria-label="More">
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      </div>
 
       {isCreatingSprint && (
-        <div className="p-4 bg-card border shadow-sm rounded-lg flex gap-4 items-center">
+        <div className="mb-4 flex items-center gap-3 rounded border border-[#dfe1e6] bg-white p-3 shadow-sm">
           <input 
             value={newSprintName}
             onChange={e => setNewSprintName(e.target.value)}
             placeholder="Sprint Name e.g. Sprint 1"
-            className="flex-1 h-10 px-3 rounded-md border text-sm"
+            className="h-9 flex-1 rounded border border-[#dfe1e6] px-3 text-sm"
           />
           <button 
             onClick={() => createSprintMutation.mutate(newSprintName)}
             disabled={!newSprintName.trim() || createSprintMutation.isPending}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+            className="h-9 rounded bg-[#0c66e4] px-4 text-sm font-semibold text-white disabled:opacity-50"
           >
             Save Sprint
           </button>
-          <button onClick={() => setIsCreatingSprint(false)} className="text-sm font-medium px-4">Cancel</button>
+          <button onClick={() => setIsCreatingSprint(false)} className="h-9 px-3 text-sm font-medium">Cancel</button>
         </div>
       )}
 
       <DndContext onDragEnd={handleDragEnd}>
         {/* Sprints */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {plannedSprints.map(sprint => (
             <DroppableSprint 
               key={sprint.id} 
               sprintId={sprint.id} 
-              title={`${sprint.name} ${sprint.status === 'ACTIVE' ? '(ACTIVE)' : ''}`}
+              title={`${sprint.name} ${sprint.status === 'ACTIVE' ? '(active)' : ''}`}
+              count={tasks.filter(t => t.sprint_id === sprint.id).length}
               isActive={sprint.status === 'ACTIVE'}
               onStart={sprint.status === 'PLANNED' ? () => updateSprintStatusMutation.mutate({ sprintId: sprint.id, status: 'ACTIVE' }) : undefined}
               onComplete={sprint.status === 'ACTIVE' ? () => updateSprintStatusMutation.mutate({ sprintId: sprint.id, status: 'COMPLETED' }) : undefined}
             >
               {tasks.filter(t => t.sprint_id === sprint.id).length === 0 ? (
-                <div className="text-sm text-muted-foreground p-4 text-center border-dashed border rounded-md">
+                <div className="p-4 text-center text-sm text-[#626f86]">
                   Drag tasks here to plan this sprint.
                 </div>
               ) : (
@@ -186,11 +223,11 @@ export const SprintBacklog = () => {
         </div>
 
         {/* Backlog */}
-        <div className="mt-12">
-          <DroppableSprint sprintId="backlog" title="Backlog (Unassigned Tasks)">
+        <div className="mt-4">
+          <DroppableSprint sprintId="backlog" title="Backlog" count={backlogTasks.length}>
             {backlogTasks.length === 0 ? (
-              <div className="text-sm text-muted-foreground p-4 text-center border-dashed border rounded-md">
-                Your backlog is empty. Create some tasks in the Kanban board and clear their sprint!
+              <div className="p-4 text-center text-sm text-[#626f86]">
+                Your backlog is empty.
               </div>
             ) : (
               backlogTasks.map(task => (
@@ -200,6 +237,7 @@ export const SprintBacklog = () => {
           </DroppableSprint>
         </div>
       </DndContext>
-    </div>
+      </div>
+    </ProjectChrome>
   );
 };

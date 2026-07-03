@@ -43,7 +43,7 @@ export const WorkspaceDashboard = () => {
   if (selectedWorkspaceId) {
     const ws = workspaces?.find((w) => w.id === selectedWorkspaceId);
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 bg-white p-8">
         <div className="flex items-center gap-4 mb-8">
           <button 
             onClick={() => setSelectedWorkspaceId(null)}
@@ -59,19 +59,19 @@ export const WorkspaceDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white p-8">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Workspaces</h2>
         <button
           onClick={() => setIsCreating(!isCreating)}
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+          className="inline-flex h-9 items-center justify-center rounded bg-[#0c66e4] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0055cc]"
         >
           {isCreating ? 'Cancel' : 'Create Workspace'}
         </button>
       </div>
 
       {isCreating && (
-        <div className="p-6 bg-card rounded-xl border shadow-sm max-w-md mb-8">
+        <div className="p-6 bg-card rounded border shadow-sm max-w-md mb-8">
           <h3 className="text-lg font-medium mb-4">New Workspace</h3>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
@@ -105,7 +105,7 @@ export const WorkspaceDashboard = () => {
       {isLoading ? (
         <div>Loading workspaces...</div>
       ) : workspaces?.length === 0 ? (
-        <div className="text-center p-12 border rounded-xl border-dashed">
+        <div className="text-center p-12 border rounded border-dashed">
           <p className="text-muted-foreground">You don't have any workspaces yet.</p>
         </div>
       ) : (
@@ -114,7 +114,7 @@ export const WorkspaceDashboard = () => {
             <div
               key={ws.id}
               onClick={() => setSelectedWorkspaceId(ws.id)}
-              className="p-6 rounded-xl border bg-card text-card-foreground shadow-sm cursor-pointer hover:border-primary/50 transition-colors"
+              className="cursor-pointer rounded border bg-white p-6 text-card-foreground shadow-sm transition-colors hover:border-[#0c66e4]"
             >
               <h3 className="font-semibold text-lg">{ws.name}</h3>
               <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
