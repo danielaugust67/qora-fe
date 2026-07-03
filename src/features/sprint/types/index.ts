@@ -16,3 +16,5 @@ export interface CreateSprintData {
   start_date?: string;
   end_date?: string;
 }
+
+export type UpdateSprintData = CreateSprintData;

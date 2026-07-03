@@ -1,5 +1,5 @@
 import apiClient from '@/services/apiClient';
-import { Sprint, CreateSprintData } from '../types';
+import { Sprint, CreateSprintData, UpdateSprintData } from '../types';
 
 export const sprintApi = {
   getSprints: async (projectId: string): Promise<Sprint[]> => {
@@ -10,6 +10,15 @@ export const sprintApi = {
   createSprint: async (projectId: string, data: CreateSprintData): Promise<Sprint> => {
     const response = await apiClient.post(`/projects/${projectId}/sprints`, data);
     return response.data;
+  },
+
+  updateSprint: async (sprintId: string, data: UpdateSprintData): Promise<Sprint> => {
+    const response = await apiClient.put(`/sprints/${sprintId}`, data);
+    return response.data;
+  },
+
+  deleteSprint: async (sprintId: string): Promise<void> => {
+    await apiClient.delete(`/sprints/${sprintId}`);
   },
   
   updateStatus: async (projectId: string, sprintId: string, status: string): Promise<void> => {

@@ -15,6 +15,11 @@ interface TaskDraft {
   priority: string;
 }
 
+interface SprintDraft {
+  name: string;
+  goal: string;
+}
+
 const emptyTaskDraft: TaskDraft = {
   title: '',
   description: '',
@@ -27,6 +32,11 @@ const taskToDraft = (task: Task): TaskDraft => ({
   description: task.description || '',
   type: task.type || 'TASK',
   priority: task.priority || 'MEDIUM',
+});
+
+const sprintToDraft = (sprint: { name: string; goal?: string }): SprintDraft => ({
+  name: sprint.name,
+  goal: sprint.goal || '',
 });
 
 // Draggable Task Item
@@ -167,7 +177,64 @@ const TaskInlineForm = ({
 };
 
 // Droppable Sprint Container
-const DroppableSprint = ({ sprintId, title, count, isActive, onStart, onComplete, children }: any) => {
+const SprintInlineForm = ({
+  value,
+  onChange,
+  onSubmit,
+  onCancel,
+  submitLabel,
+  isPending,
+}: {
+  value: SprintDraft;
+  onChange: (value: SprintDraft) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  submitLabel: string;
+  isPending: boolean;
+}) => {
+  return (
+    <div className="mb-4 rounded border border-[#dfe1e6] bg-white p-3 shadow-sm">
+      <div className="flex items-center gap-3">
+        <input
+          value={value.name}
+          onChange={(event) => onChange({ ...value, name: event.target.value })}
+          placeholder="Sprint name"
+          className="h-9 flex-1 rounded border border-[#dfe1e6] px-3 text-sm outline-none focus:border-[#0c66e4] focus:ring-1 focus:ring-[#0c66e4]"
+        />
+        <button
+          onClick={onSubmit}
+          disabled={!value.name.trim() || isPending}
+          className="h-9 rounded bg-[#0c66e4] px-4 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {submitLabel}
+        </button>
+        <button onClick={onCancel} className="h-9 px-3 text-sm font-medium">
+          Cancel
+        </button>
+      </div>
+      <textarea
+        value={value.goal}
+        onChange={(event) => onChange({ ...value, goal: event.target.value })}
+        placeholder="Sprint goal"
+        className="mt-3 min-h-[70px] w-full rounded border border-[#dfe1e6] p-3 text-sm outline-none focus:border-[#0c66e4] focus:ring-1 focus:ring-[#0c66e4]"
+      />
+    </div>
+  );
+};
+
+const DroppableSprint = ({
+  sprintId,
+  title,
+  count,
+  isActive,
+  menuOpen,
+  onToggleMenu,
+  onEdit,
+  onDelete,
+  onStart,
+  onComplete,
+  children,
+}: any) => {
   const { isOver, setNodeRef } = useDroppable({ id: sprintId });
 
   return (
@@ -192,9 +259,27 @@ const DroppableSprint = ({ sprintId, title, count, isActive, onStart, onComplete
             Complete Sprint
           </button>
         )}
-          <button className="grid h-8 w-8 place-items-center rounded hover:bg-[#ebecf0]" aria-label="More">
+          <div className="relative">
+          <button
+            onClick={onToggleMenu}
+            className="grid h-8 w-8 place-items-center rounded hover:bg-[#ebecf0]"
+            aria-label="More"
+          >
             <MoreHorizontal className="h-4 w-4" />
           </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-9 z-20 w-36 rounded border border-[#dfe1e6] bg-white py-1 text-sm shadow-lg">
+              <button onClick={onEdit} className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-[#f1f2f4]">
+                <Pencil className="h-4 w-4" />
+                Edit sprint
+              </button>
+              <button onClick={onDelete} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[#ae2a19] hover:bg-[#ffebe6]">
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
+            </div>
+          )}
+          </div>
         </div>
       </div>
       <div className="min-h-[46px] border border-[#dfe1e6] bg-white">
@@ -208,7 +293,10 @@ export const SprintBacklog = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const queryClient = useQueryClient();
   const [isCreatingSprint, setIsCreatingSprint] = useState(false);
-  const [newSprintName, setNewSprintName] = useState('');
+  const [newSprint, setNewSprint] = useState<SprintDraft>({ name: '', goal: '' });
+  const [editingSprintId, setEditingSprintId] = useState<string | null>(null);
+  const [editingSprint, setEditingSprint] = useState<SprintDraft>({ name: '', goal: '' });
+  const [openSprintMenuId, setOpenSprintMenuId] = useState<string | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [newTask, setNewTask] = useState<TaskDraft>(emptyTaskDraft);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -233,12 +321,32 @@ export const SprintBacklog = () => {
   });
 
   const createSprintMutation = useMutation({
-    mutationFn: (name: string) => sprintApi.createSprint(projectId!, { name }),
+    mutationFn: (data: SprintDraft) => sprintApi.createSprint(projectId!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprints', projectId] });
       setIsCreatingSprint(false);
-      setNewSprintName('');
+      setNewSprint({ name: '', goal: '' });
     }
+  });
+
+  const updateSprintMutation = useMutation({
+    mutationFn: ({ sprintId, data }: { sprintId: string; data: SprintDraft }) =>
+      sprintApi.updateSprint(sprintId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sprints', projectId] });
+      setEditingSprintId(null);
+      setEditingSprint({ name: '', goal: '' });
+      setOpenSprintMenuId(null);
+    },
+  });
+
+  const deleteSprintMutation = useMutation({
+    mutationFn: (sprintId: string) => sprintApi.deleteSprint(sprintId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sprints', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      setOpenSprintMenuId(null);
+    },
   });
 
   const createTaskMutation = useMutation({
@@ -296,6 +404,13 @@ export const SprintBacklog = () => {
 
   const backlogTasks = tasks.filter(t => !t.sprint_id);
   const plannedSprints = sprints.filter(s => s.status === 'PLANNED' || s.status === 'ACTIVE');
+  const startEditingSprint = (sprint: { id: string; name: string; goal?: string }) => {
+    setEditingSprintId(sprint.id);
+    setEditingSprint(sprintToDraft(sprint));
+    setOpenSprintMenuId(null);
+    setIsCreatingSprint(false);
+  };
+
   const startEditingTask = (task: Task) => {
     setEditingTaskId(task.id);
     setEditingTask(taskToDraft(task));
@@ -322,7 +437,11 @@ export const SprintBacklog = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsCreatingSprint(true)}
+              onClick={() => {
+                setIsCreatingSprint(true);
+                setEditingSprintId(null);
+                setOpenSprintMenuId(null);
+              }}
               className="h-9 rounded bg-[#0c66e4] px-4 text-sm font-semibold text-white hover:bg-[#0055cc]"
             >
               Create sprint
@@ -337,34 +456,46 @@ export const SprintBacklog = () => {
         </div>
 
       {isCreatingSprint && (
-        <div className="mb-4 flex items-center gap-3 rounded border border-[#dfe1e6] bg-white p-3 shadow-sm">
-          <input 
-            value={newSprintName}
-            onChange={e => setNewSprintName(e.target.value)}
-            placeholder="Sprint Name e.g. Sprint 1"
-            className="h-9 flex-1 rounded border border-[#dfe1e6] px-3 text-sm"
-          />
-          <button 
-            onClick={() => createSprintMutation.mutate(newSprintName)}
-            disabled={!newSprintName.trim() || createSprintMutation.isPending}
-            className="h-9 rounded bg-[#0c66e4] px-4 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            Save Sprint
-          </button>
-          <button onClick={() => setIsCreatingSprint(false)} className="h-9 px-3 text-sm font-medium">Cancel</button>
-        </div>
+        <SprintInlineForm
+          value={newSprint}
+          onChange={setNewSprint}
+          onSubmit={() => createSprintMutation.mutate(newSprint)}
+          onCancel={() => {
+            setIsCreatingSprint(false);
+            setNewSprint({ name: '', goal: '' });
+          }}
+          submitLabel="Save sprint"
+          isPending={createSprintMutation.isPending}
+        />
       )}
 
       <DndContext onDragEnd={handleDragEnd}>
         {/* Sprints */}
         <div className="space-y-4">
           {plannedSprints.map(sprint => (
+            <div key={sprint.id} className="space-y-2">
+            {editingSprintId === sprint.id && (
+              <SprintInlineForm
+                value={editingSprint}
+                onChange={setEditingSprint}
+                onSubmit={() => updateSprintMutation.mutate({ sprintId: sprint.id, data: editingSprint })}
+                onCancel={() => {
+                  setEditingSprintId(null);
+                  setEditingSprint({ name: '', goal: '' });
+                }}
+                submitLabel="Save sprint"
+                isPending={updateSprintMutation.isPending}
+              />
+            )}
             <DroppableSprint 
-              key={sprint.id} 
               sprintId={sprint.id} 
               title={`${sprint.name} ${sprint.status === 'ACTIVE' ? '(active)' : ''}`}
               count={tasks.filter(t => t.sprint_id === sprint.id).length}
               isActive={sprint.status === 'ACTIVE'}
+              menuOpen={openSprintMenuId === sprint.id}
+              onToggleMenu={() => setOpenSprintMenuId((current) => current === sprint.id ? null : sprint.id)}
+              onEdit={() => startEditingSprint(sprint)}
+              onDelete={() => deleteSprintMutation.mutate(sprint.id)}
               onStart={sprint.status === 'PLANNED' ? () => updateSprintStatusMutation.mutate({ sprintId: sprint.id, status: 'ACTIVE' }) : undefined}
               onComplete={sprint.status === 'ACTIVE' ? () => updateSprintStatusMutation.mutate({ sprintId: sprint.id, status: 'COMPLETED' }) : undefined}
             >
@@ -398,6 +529,7 @@ export const SprintBacklog = () => {
                 ))
               )}
             </DroppableSprint>
+            </div>
           ))}
         </div>
 
