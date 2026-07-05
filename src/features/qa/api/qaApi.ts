@@ -7,6 +7,17 @@ export const qaApi = {
     return response.data;
   },
 
+  uploadImage: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post(`/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   getTaskTestCases: async (taskId: string): Promise<TestCase[]> => {
     const response = await apiClient.get(`/tasks/${taskId}/test-cases`);
     return response.data;
@@ -22,7 +33,7 @@ export const qaApi = {
     return response.data;
   },
 
-  updateTestCase: async (testCaseId: string, data: Omit<CreateTestCaseData, 'steps'>): Promise<TestCase> => {
+  updateTestCase: async (testCaseId: string, data: CreateTestCaseData): Promise<TestCase> => {
     const response = await apiClient.put(`/test-cases/${testCaseId}`, data);
     return response.data;
   },

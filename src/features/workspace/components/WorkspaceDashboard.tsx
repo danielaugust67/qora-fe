@@ -64,7 +64,7 @@ export const WorkspaceDashboard = () => {
         <h2 className="text-3xl font-bold tracking-tight">Workspaces</h2>
         <button
           onClick={() => setIsCreating(!isCreating)}
-          className="inline-flex h-9 items-center justify-center rounded bg-[#0c66e4] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0055cc]"
+          className="inline-flex h-9 items-center justify-center rounded bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
         >
           {isCreating ? 'Cancel' : 'Create Workspace'}
         </button>
@@ -114,7 +114,7 @@ export const WorkspaceDashboard = () => {
             <div
               key={ws.id}
               onClick={() => setSelectedWorkspaceId(ws.id)}
-              className="cursor-pointer rounded border bg-white p-6 text-card-foreground shadow-sm transition-colors hover:border-[#0c66e4]"
+              className="cursor-pointer rounded border bg-white p-6 text-card-foreground shadow-sm transition-colors hover:border-primary"
             >
               <h3 className="font-semibold text-lg">{ws.name}</h3>
               <p className="text-sm text-muted-foreground mt-2 line-clamp-2">

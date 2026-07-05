@@ -10,3 +10,8 @@ export interface AuthResponse {
   token: string;
   user: User;
 }
+
+export interface UpdateProfileData {
+  name: string;
+  email: string;
+}

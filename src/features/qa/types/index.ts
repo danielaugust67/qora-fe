@@ -26,6 +26,15 @@ export interface TestCase {
   priority: string;
   expected_result: string;
   status: string;
+  testing_type?: string;
+  test_data?: string;
+  actual_result?: string;
+  tester?: string;
+  execution_date?: string;
+  type_of_testing?: string;
+  notes?: string;
+  phase?: string;
+  attachment_url?: string;
   created_at: string;
   updated_at: string;
   steps?: TestStep[];
@@ -38,6 +47,14 @@ export interface CreateTestCaseData {
   preconditions?: string;
   priority?: string;
   expected_result?: string;
+  testing_type?: string;
+  test_data?: string;
+  actual_result?: string;
+  tester?: string;
+  type_of_testing?: string;
+  notes?: string;
+  phase?: string;
+  attachment_url?: string;
   steps: {
     action: string;
     expected_result?: string;

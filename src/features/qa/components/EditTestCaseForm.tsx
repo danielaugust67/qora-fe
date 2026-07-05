@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as z from 'zod';
 import { qaApi } from '../api/qaApi';
-import { useAuthStore } from '@/features/auth/store/authStore';
+import { TestCase } from '../types';
 
 const schema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -33,14 +33,13 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 interface Props {
-  taskId: string;
+  testCase: TestCase;
   onCancel: () => void;
+  onSuccess: () => void;
 }
 
-export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
+export const EditTestCaseForm: React.FC<Props> = ({ testCase, onCancel, onSuccess }) => {
   const queryClient = useQueryClient();
-  const user = useAuthStore((state) => state.user);
-  
   const [isUploading, setIsUploading] = useState(false);
 
   const {
@@ -53,9 +52,22 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      priority: 'MEDIUM',
-      tester: user?.name || '',
-      steps: [{ action: '', expected_result: '' }],
+      title: testCase.title,
+      description: testCase.description || '',
+      preconditions: testCase.preconditions || '',
+      priority: testCase.priority || 'MEDIUM',
+      expected_result: testCase.expected_result || '',
+      testing_type: testCase.testing_type || '',
+      test_data: testCase.test_data || '',
+      actual_result: testCase.actual_result || '',
+      tester: testCase.tester || '',
+      type_of_testing: testCase.type_of_testing || '',
+      notes: testCase.notes || '',
+      phase: testCase.phase || '',
+      attachment_url: testCase.attachment_url || '',
+      steps: testCase.steps && testCase.steps.length > 0 
+        ? testCase.steps.map(s => ({ action: s.action, expected_result: s.expected_result || '' }))
+        : [{ action: '', expected_result: '' }],
     },
   });
 
@@ -82,24 +94,25 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
     }
   };
 
-  const createMutation = useMutation({
-    mutationFn: (data: FormData) => qaApi.createTestCase(taskId, data),
+  const updateMutation = useMutation({
+    mutationFn: (data: FormData) => qaApi.updateTestCase(testCase.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task', taskId, 'test-cases'] });
-      onCancel();
+      queryClient.invalidateQueries({ queryKey: ['test-cases', testCase.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['task', testCase.task_id, 'test-cases'] });
+      onSuccess();
     },
   });
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 rounded-xl border bg-card p-6 shadow-sm duration-300">
       <div className="mb-6 flex items-center justify-between">
-        <h3 className="text-xl font-bold">Create New Test Case</h3>
+        <h3 className="text-xl font-bold">Edit Test Case</h3>
         <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
           Close
         </button>
       </div>
 
-      <form onSubmit={handleSubmit((data) => createMutation.mutate(data))} className="space-y-6">
+      <form onSubmit={handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6">
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-4">
             <div>
@@ -107,7 +120,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <input
                 {...register('title')}
                 className="h-10 w-full rounded-md border bg-background px-3"
-                placeholder="User Login Validation"
               />
               {errors.title && <p className="mt-1 text-sm text-destructive">{errors.title.message}</p>}
             </div>
@@ -117,7 +129,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <textarea
                 {...register('description')}
                 className="min-h-[100px] w-full rounded-md border bg-background p-3"
-                placeholder="What this test case covers"
               />
             </div>
 
@@ -126,7 +137,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <textarea
                 {...register('preconditions')}
                 className="min-h-[60px] w-full rounded-md border bg-background p-3"
-                placeholder="Required state before the test starts"
               />
             </div>
 
@@ -145,7 +155,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <textarea
                 {...register('expected_result')}
                 className="min-h-[60px] w-full rounded-md border bg-background p-3"
-                placeholder="Expected result after all steps pass"
               />
             </div>
           </div>
@@ -156,7 +165,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <input
                 {...register('testing_type')}
                 className="h-10 w-full rounded-md border bg-background px-3"
-                placeholder="e.g. Functional, Regression"
               />
             </div>
             <div>
@@ -164,7 +172,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <input
                 {...register('type_of_testing')}
                 className="h-10 w-full rounded-md border bg-background px-3"
-                placeholder="e.g. Manual, Automated"
               />
             </div>
             <div>
@@ -172,7 +179,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <input
                 {...register('phase')}
                 className="h-10 w-full rounded-md border bg-background px-3"
-                placeholder="e.g. SIT, UAT, PROD"
               />
             </div>
             <div>
@@ -180,7 +186,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <textarea
                 {...register('test_data')}
                 className="min-h-[60px] w-full rounded-md border bg-background p-3"
-                placeholder="Required data for the test"
               />
             </div>
             <div>
@@ -188,7 +193,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <input
                 {...register('tester')}
                 className="h-10 w-full rounded-md border bg-background px-3"
-                placeholder="Assignee or Tester Name"
               />
             </div>
             <div>
@@ -196,7 +200,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <textarea
                 {...register('actual_result')}
                 className="min-h-[60px] w-full rounded-md border bg-background p-3"
-                placeholder="Result after execution"
               />
             </div>
             <div>
@@ -204,7 +207,6 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
               <textarea
                 {...register('notes')}
                 className="min-h-[60px] w-full rounded-md border bg-background p-3"
-                placeholder="Additional notes"
               />
             </div>
             <div>
@@ -229,64 +231,64 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
         </div>
 
         <div className="border-t pt-6">
-            <div className="mb-2 flex items-center justify-between">
-              <label className="block text-sm font-medium">Test Steps</label>
-              <button
-                type="button"
-                onClick={() => append({ action: '', expected_result: '' })}
-                className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
-              >
-                Add Step
-              </button>
-            </div>
+          <div className="mb-2 flex items-center justify-between">
+            <label className="block text-sm font-medium">Test Steps</label>
+            <button
+              type="button"
+              onClick={() => append({ action: '', expected_result: '' })}
+              className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+            >
+              Add Step
+            </button>
+          </div>
 
-            {errors.steps?.root && <p className="text-sm text-destructive">{errors.steps.root.message}</p>}
+          {errors.steps?.root && <p className="text-sm text-destructive">{errors.steps.root.message}</p>}
 
-            <div className="max-h-[500px] space-y-4 overflow-y-auto pr-2">
-              {fields.map((field, index) => (
-                <div key={field.id} className="group relative rounded-lg border bg-muted/20 p-4">
-                  <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => remove(index)}
-                      className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive hover:bg-destructive/20"
-                      disabled={fields.length === 1}
-                    >
-                      Remove
-                    </button>
+          <div className="max-h-[500px] space-y-4 overflow-y-auto pr-2">
+            {fields.map((field, index) => (
+              <div key={field.id} className="group relative rounded-lg border bg-muted/20 p-4">
+                <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => remove(index)}
+                    className="rounded bg-destructive/10 px-2 py-1 text-xs text-destructive hover:bg-destructive/20"
+                    disabled={fields.length === 1}
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div className="mb-3 flex gap-3">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    {index + 1}
                   </div>
-
-                  <div className="mb-3 flex gap-3">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <label className="mb-1 block text-xs font-medium text-muted-foreground">Action</label>
-                      <input
-                        {...register(`steps.${index}.action`)}
-                        className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                        placeholder="Click login button"
-                      />
-                      {errors.steps?.[index]?.action && (
-                        <p className="mt-1 text-xs text-destructive">{errors.steps[index]?.action?.message}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pl-9">
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                      Expected Result
-                    </label>
+                  <div className="flex-1">
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Action</label>
                     <input
-                      {...register(`steps.${index}.expected_result`)}
+                      {...register(`steps.${index}.action`)}
                       className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                      placeholder="The correct response appears"
+                      placeholder="Click login button"
                     />
+                    {errors.steps?.[index]?.action && (
+                      <p className="mt-1 text-xs text-destructive">{errors.steps[index]?.action?.message}</p>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+
+                <div className="pl-9">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Expected Result
+                  </label>
+                  <input
+                    {...register(`steps.${index}.expected_result`)}
+                    className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    placeholder="The correct response appears"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
 
         <div className="mt-8 flex justify-end gap-4 border-t pt-6">
           <button type="button" onClick={onCancel} className="rounded-md px-6 py-2 text-sm font-medium hover:bg-muted">
@@ -294,10 +296,10 @@ export const CreateTestCaseForm: React.FC<Props> = ({ taskId, onCancel }) => {
           </button>
           <button
             type="submit"
-            disabled={createMutation.isPending}
+            disabled={updateMutation.isPending}
             className="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
           >
-            {createMutation.isPending ? 'Saving...' : 'Save Test Case'}
+            {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </form>

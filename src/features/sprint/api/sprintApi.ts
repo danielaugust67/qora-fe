@@ -12,13 +12,13 @@ export const sprintApi = {
     return response.data;
   },
 
-  updateSprint: async (sprintId: string, data: UpdateSprintData): Promise<Sprint> => {
-    const response = await apiClient.put(`/sprints/${sprintId}`, data);
+  updateSprint: async (projectId: string, sprintId: string, data: UpdateSprintData): Promise<Sprint> => {
+    const response = await apiClient.put(`/projects/${projectId}/sprints/${sprintId}`, data);
     return response.data;
   },
 
-  deleteSprint: async (sprintId: string): Promise<void> => {
-    await apiClient.delete(`/sprints/${sprintId}`);
+  deleteSprint: async (projectId: string, sprintId: string): Promise<void> => {
+    await apiClient.delete(`/projects/${projectId}/sprints/${sprintId}`);
   },
   
   updateStatus: async (projectId: string, sprintId: string, status: string): Promise<void> => {

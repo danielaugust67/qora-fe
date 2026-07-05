@@ -27,8 +27,15 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectI
   const [bugTestCaseId, setBugTestCaseId] = useState<string | undefined>();
 
   const { data: comments = [] } = useQuery({
-    queryKey: ['task', task.id, 'comments'],
+    queryKey: ['task-comments', task.id],
     queryFn: () => taskApi.getComments(task.id),
+    enabled: isOpen,
+  });
+
+  const { data: activities = [] } = useQuery({
+    queryKey: ['task-activities', task.id],
+    queryFn: () => taskApi.getTaskActivities(task.id),
+    enabled: isOpen,
   });
 
   const { data: attachments = [] } = useQuery({
@@ -116,8 +123,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectI
               <span className="px-2 py-1 bg-muted rounded-md font-medium">Status: {task.status}</span>
               <span className="px-2 py-1 bg-muted rounded-md font-medium">Priority: {task.priority}</span>
             </div>
-            <div className="prose prose-sm dark:prose-invert">
-              <p>{task.description || 'No description provided.'}</p>
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              {task.description ? (
+                <div dangerouslySetInnerHTML={{ __html: task.description }} />
+              ) : (
+                <p>No description provided.</p>
+              )}
             </div>
           </div>
 
@@ -212,6 +223,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectI
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="font-medium">{bug.title}</div>
+                        {bug.description && (
+                          <div 
+                            className="mt-3 text-sm text-muted-foreground prose prose-sm dark:prose-invert max-w-none" 
+                            dangerouslySetInnerHTML={{ __html: bug.description }} 
+                          />
+                        )}
                         <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
                           <span>Status: {bug.status}</span>
                           <span>Severity: {bug.severity}</span>
@@ -339,6 +356,28 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectI
                     {addCommentMutation.isPending ? 'Saving...' : 'Comment'}
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Activity Log */}
+            <div className="pt-6 mt-6 border-t space-y-4">
+              <h3 className="text-lg font-semibold">Activity Log</h3>
+              <div className="space-y-3">
+                {activities.length > 0 ? activities.map((activity: any) => (
+                  <div key={activity.id} className="flex gap-3 text-sm">
+                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <span className="text-[10px] text-muted-foreground">Log</span>
+                    </div>
+                    <div>
+                      <p>
+                        <span className="font-semibold">User</span> {activity.action} <span className="font-medium">{activity.details}</span>
+                      </p>
+                      <span className="text-xs text-muted-foreground">{new Date(activity.created_at).toLocaleString()}</span>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground">No recent activity.</p>
+                )}
               </div>
             </div>
 

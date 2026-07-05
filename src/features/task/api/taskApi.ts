@@ -40,6 +40,11 @@ export const taskApi = {
     return response.data;
   },
 
+  getTaskActivities: async (taskId: string): Promise<any[]> => {
+    const response = await apiClient.get(`/tasks/${taskId}/activities`);
+    return response.data;
+  },
+
   uploadAttachment: async (taskId: string, file: File): Promise<TaskAttachment> => {
     const formData = new FormData();
     formData.append('file', file);
