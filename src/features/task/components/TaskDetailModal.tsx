@@ -29,13 +29,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, projectI
   const { data: comments = [] } = useQuery({
     queryKey: ['task-comments', task.id],
     queryFn: () => taskApi.getComments(task.id),
-    enabled: isOpen,
+    enabled: !!task.id,
   });
 
   const { data: activities = [] } = useQuery({
     queryKey: ['task-activities', task.id],
     queryFn: () => taskApi.getTaskActivities(task.id),
-    enabled: isOpen,
+    enabled: !!task.id,
   });
 
   const { data: attachments = [] } = useQuery({

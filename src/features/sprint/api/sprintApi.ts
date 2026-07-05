@@ -1,5 +1,5 @@
 import apiClient from '@/services/apiClient';
-import { Sprint, CreateSprintData, UpdateSprintData } from '../types';
+import { Sprint, CreateSprintData, UpdateSprintData } from '../types/index';
 
 export const sprintApi = {
   getSprints: async (projectId: string): Promise<Sprint[]> => {

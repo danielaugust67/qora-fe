@@ -1,4 +1,3 @@
-import React from 'react';
 import { useParams } from 'react-router-dom';
 import { ProjectChrome } from '@/features/project/components/ProjectChrome';
 import { Download, FileCheck, CheckCircle, AlertTriangle } from 'lucide-react';
