@@ -29,7 +29,8 @@ export const NotificationBell = () => {
     const connect = () => {
       const token = useAuthStore.getState().token;
       if (!token) return;
-      const wsUrl = `ws://localhost:8080/api/v1/users/ws?token=${token}`;
+      const wsBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL?.replace(/^http/, 'ws') || 'ws://localhost:8080/api/v1';
+      const wsUrl = `${wsBaseUrl}/users/ws?token=${token}`;
       ws.current = new WebSocket(wsUrl);
 
       ws.current.onmessage = (event) => {

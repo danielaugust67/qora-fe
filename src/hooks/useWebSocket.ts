@@ -12,7 +12,8 @@ export const useWebSocket = (projectId: string) => {
     // Connect to WebSocket server
     const connect = () => {
       const token = useAuthStore.getState().token;
-      const wsUrl = `ws://localhost:8080/api/v1/projects/${projectId}/ws${token ? `?token=${token}` : ''}`;
+      const wsBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL?.replace(/^http/, 'ws') || 'ws://localhost:8080/api/v1';
+      const wsUrl = `${wsBaseUrl}/projects/${projectId}/ws${token ? `?token=${token}` : ''}`;
       ws.current = new WebSocket(wsUrl);
 
       ws.current.onopen = () => {
